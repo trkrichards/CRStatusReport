@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Status Report Form</title>
+<style>
+  @font-face {
+    font-family: "Tiempos Text";
+    src: url("fonts/tiempos-text-regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "National 2";
+    src: url("fonts/national-2-regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "National 2";
+    src: url("fonts/national-2-bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  :root {
+    --vital-orange: #FF551D;
+    --graphite: #1E1E1E;
+    --ink: #544946;
+    --sand: #EEE7D7;
+    --paper: #F7F4EF;
+    --action-blue: #2254FF;
+    --font-serif: "Tiempos Text", Georgia, serif;
+    --font-sans: "National 2", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: #fff;
+    color: var(--graphite);
+    margin: 0;
+    padding: 40px 24px 80px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  .brandbar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .brandbar img { height: 22px; display: block; }
+  .brandbar .rule {
+    flex: 1;
+    height: 3px;
+    background: var(--vital-orange);
+    margin-left: 16px;
+  }
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 1.7rem;
+    color: var(--graphite);
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .subtitle { color: var(--ink); margin-top: 0; margin-bottom: 24px; }
+  h2.section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--graphite);
+    margin: 32px 0 4px;
+    padding-top: 20px;
+    border-top: 1px solid var(--sand);
+  }
+  h2.section-title:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .section-desc { color: var(--ink); font-size: 0.88rem; margin: 0 0 14px; }
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-row label {
+    font-size: 0.8rem;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .meta-row input {
+    border: 1px solid var(--sand);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+  .banner {
+    border: 1px solid var(--sand);
+    background: var(--paper);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 0.85rem;
+    color: var(--ink);
+    margin-bottom: 24px;
+  }
+  .banner.empty { color: #8a5a1f; background: #fff8ef; border-color: #f0dcb8; }
+  .category-heading {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 18px 0 8px;
+  }
+  .category-heading:first-child { margin-top: 0; }
+  .project {
+    background: #fff;
+    border: 1px solid var(--sand);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .project .project-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .project label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--graphite);
+  }
+  .badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--sand);
+    border-radius: 3px;
+    padding: 2px 7px;
+    line-height: 1.4;
+  }
+  .project textarea, textarea#recognitionInput {
+    width: 100%;
+    min-height: 90px;
+    border: 1px solid var(--sand);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+  }
+  .people-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px 12px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .people-grid label.person-name { font-weight: 700; font-size: 0.88rem; color: var(--graphite); }
+  .people-grid input[type=text] {
+    border: 1px solid var(--sand);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.88rem;
+    font-family: inherit;
+  }
+  .signoff-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px 12px;
+    align-items: center;
+  }
+  .signoff-grid label.chk {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  button {
+    background: var(--action-blue);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--action-blue);
+    border: 1px solid var(--action-blue);
+  }
+  .actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+  .toast {
+    font-size: 0.82rem;
+    color: #2f7a3e;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="elsevier-logo-graphite.svg" alt="Elsevier">
+    <div class="rule"></div>
+  </div>
+  <h1>Status Report Form</h1>
+  <p class="subtitle">The final version — project updates auto-fill from the Weekly Status Update Assistant on this device; out-of-office, recognition, and sign-off are entered here directly. Everything is editable.</p>
+
+  <div class="meta-row">
+    <div>
+      <label for="reporterName">Name</label>
+      <input type="text" id="reporterName" placeholder="Your name">
+    </div>
+    <div>
+      <label for="weekOf">Week of</label>
+      <input type="date" id="weekOf">
+    </div>
+  </div>
+
+  <div id="banner" class="banner"></div>
+
+  <div id="projectsContainer"></div>
+
+  <h2 class="section-title">Upcoming out of office</h2>
+  <p class="section-desc">Who's out next, and when — defaults to "None," edit any that apply.</p>
+  <div class="people-grid" id="oooGrid"></div>
+
+  <h2 class="section-title">Recognition</h2>
+  <p class="section-desc">Shout-outs for the week — one per line if there's more than one.</p>
+  <textarea id="recognitionInput" placeholder="Not yet entered."></textarea>
+
+  <h2 class="section-title">Sign off</h2>
+  <p class="section-desc">Check off once each person has reviewed this report.</p>
+  <div class="signoff-grid" id="signoffGrid"></div>
+
+  <div class="actions" style="margin-top: 28px;">
+    <button id="refreshBtn" class="secondary">Refresh from Status Update page</button>
+    <button id="copyBtn">Copy Full Report</button>
+    <span class="toast" id="copyToast">Copied</span>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'statusUpdateItems';
+const META_KEY = 'statusReportMeta';
+const TEAM = ['Kelly', 'Barry', 'Tessa', 'Laura', 'Andrew', 'Jan'];
+
+function loadItems() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch (e) {
+    return null;
+  }
+}
+
+function loadMeta() {
+  const saved = localStorage.getItem(META_KEY);
+  if (!saved) return null;
+  try {
+    return JSON.parse(saved);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveMeta() {
+  const ooo = {};
+  document.querySelectorAll('#oooGrid input[data-ooo]').forEach(el => {
+    ooo[el.dataset.ooo] = el.value.trim() || 'None';
+  });
+  const signoff = {};
+  document.querySelectorAll('#signoffGrid input[data-signoff]').forEach(el => {
+    signoff[el.dataset.signoff] = el.checked;
+  });
+  const meta = {
+    name: document.getElementById('reporterName').value,
+    weekOf: document.getElementById('weekOf').value,
+    ooo,
+    recognition: document.getElementById('recognitionInput').value,
+    signoff
+  };
+  localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+
+function renderProjects() {
+  const container = document.getElementById('projectsContainer');
+  const banner = document.getElementById('banner');
+  const data = loadItems();
+
+  if (!data || !data.items || data.items.length === 0) {
+    banner.textContent = 'No data found yet. Go to index.html, paste your Claude output, click "Update Status Report," then come back here.';
+    banner.classList.add('empty');
+    container.innerHTML = '';
+    return;
+  }
+
+  banner.classList.remove('empty');
+  banner.textContent = `Loaded ${data.items.length} project${data.items.length === 1 ? '' : 's'} — last updated ${new Date(data.updatedAt).toLocaleString()}.`;
+
+  container.innerHTML = '';
+
+  // Group by category when items carry one (from index.html's fixed item
+  // list); items without a category (e.g. unmatched headings) render in
+  // their own trailing group instead of being dropped.
+  const categories = [];
+  const byCategory = new Map();
+  data.items.forEach(item => {
+    const key = item.category || null;
+    if (!byCategory.has(key)) {
+      byCategory.set(key, []);
+      categories.push(key);
+    }
+    byCategory.get(key).push(item);
+  });
+
+  categories.forEach(cat => {
+    if (cat) {
+      const heading = document.createElement('div');
+      heading.className = 'category-heading';
+      heading.textContent = cat;
+      container.appendChild(heading);
+    } else if (categories.length > 1) {
+      const heading = document.createElement('div');
+      heading.className = 'category-heading';
+      heading.textContent = 'Other';
+      container.appendChild(heading);
+    }
+    byCategory.get(cat).forEach(item => {
+      const wrap = document.createElement('div');
+      wrap.className = 'project';
+      const head = document.createElement('div');
+      head.className = 'project-head';
+      const label = document.createElement('label');
+      label.textContent = item.name;
+      head.appendChild(label);
+      if (item.status) {
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = item.status;
+        head.appendChild(badge);
+      }
+      wrap.appendChild(head);
+      const textarea = document.createElement('textarea');
+      textarea.value = item.body;
+      textarea.dataset.itemName = item.name;
+      wrap.appendChild(textarea);
+      container.appendChild(wrap);
+    });
+  });
+}
+
+function renderOOOAndSignoff(meta) {
+  const oooGrid = document.getElementById('oooGrid');
+  oooGrid.innerHTML = '';
+  TEAM.forEach(name => {
+    const label = document.createElement('label');
+    label.className = 'person-name';
+    label.textContent = name;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.dataset.ooo = name;
+    input.value = (meta && meta.ooo && meta.ooo[name]) || 'None';
+    input.addEventListener('input', saveMeta);
+    oooGrid.appendChild(label);
+    oooGrid.appendChild(input);
+  });
+
+  const signoffGrid = document.getElementById('signoffGrid');
+  signoffGrid.innerHTML = '';
+  TEAM.forEach(name => {
+    const label = document.createElement('label');
+    label.className = 'person-name';
+    label.textContent = name;
+    const chkLabel = document.createElement('label');
+    chkLabel.className = 'chk';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.dataset.signoff = name;
+    chk.checked = !!(meta && meta.signoff && meta.signoff[name]);
+    chk.addEventListener('change', saveMeta);
+    chkLabel.appendChild(chk);
+    chkLabel.appendChild(document.createTextNode(' Signed off'));
+    signoffGrid.appendChild(label);
+    signoffGrid.appendChild(chkLabel);
+  });
+
+  document.getElementById('recognitionInput').value = (meta && meta.recognition) || '';
+  document.getElementById('reporterName').value = (meta && meta.name) || '';
+  document.getElementById('weekOf').value = (meta && meta.weekOf) || '';
+}
+
+document.getElementById('refreshBtn').addEventListener('click', renderProjects);
+document.getElementById('reporterName').addEventListener('input', saveMeta);
+document.getElementById('weekOf').addEventListener('input', saveMeta);
+document.getElementById('recognitionInput').addEventListener('input', saveMeta);
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const name = document.getElementById('reporterName').value.trim();
+  const weekOf = document.getElementById('weekOf').value;
+  const fields = document.querySelectorAll('#projectsContainer .project textarea');
+  if (fields.length === 0) {
+    alert('Nothing to copy yet — go to index.html first.');
+    return;
+  }
+  const header = [
+    name ? `Name: ${name}` : null,
+    weekOf ? `Week of: ${weekOf}` : null
+  ].filter(Boolean).join('\n');
+
+  const projectParts = Array.from(fields).map(f => `${f.dataset.itemName}\n${f.value.trim() || 'No updates yet'}`);
+
+  const oooLines = TEAM.map(name => {
+    const el = document.querySelector(`#oooGrid input[data-ooo="${CSS.escape(name)}"]`);
+    return `   * ${name}: ${(el ? el.value.trim() : '') || 'None'}`;
+  });
+  const oooBlock = ['Upcoming Out of Office', ...oooLines].join('\n');
+
+  const recognition = document.getElementById('recognitionInput').value.trim() || 'Not yet entered.';
+  const recognitionBlock = `Recognition\n${recognition}`;
+
+  const signoffLines = TEAM.map(name => {
+    const el = document.querySelector(`#signoffGrid input[data-signoff="${CSS.escape(name)}"]`);
+    return `   * ${name} — ${el && el.checked ? 'signed' : 'not yet signed'}`;
+  });
+  const signoffBlock = ['Sign Off', ...signoffLines].join('\n');
+
+  const full = [header, ...projectParts, oooBlock, recognitionBlock, signoffBlock].filter(Boolean).join('\n\n');
+  navigator.clipboard.writeText(full).then(() => {
+    const toast = document.getElementById('copyToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  });
+});
+
+renderProjects();
+renderOOOAndSignoff(loadMeta());
+</script>
+</body>
+</html>
