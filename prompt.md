@@ -41,7 +41,7 @@ When I say "run my status update for the week," do the following:
    Strategic/Corporate Initiatives
    - eLearning Localization
 
-2. Search my Outlook email and Microsoft Teams chats from the past 7 days for
+2. Search my Outlook email and calendar and Microsoft Teams chats from the past 7 days for
    activity related to each item above.
 
 3. Use my historical status report files as the source of truth for tone,
@@ -77,5 +77,5 @@ When I say "run my status update for the week," do the following:
 ### Notes
 - Replace `[YOUR NAME]` with your actual name before saving the prompt.
 - The `## Item Name` headings are required and must match the item names above exactly — `index.html` matches on them to fill in each item's field. A heading that doesn't match an item on the list is still kept and shown separately as "unmatched," so nothing gets silently dropped.
-- An item with a blank paragraph just means nothing to report that week — `index.html` shows a "No updates yet" placeholder for it, and it's still on you to double check that's actually correct, not a search that came back empty because of a filter or date-range problem.
+- An item with a blank paragraph just means nothing to report that week — `index.html` shows a "No updates yet" placeholder for it, and it's still on you to double-check that's actually correct, not a search that came back empty because of a filter or date-range problem.
 - Keep uploading each week's finished report back into the project so tone and format stay current, even though the item list itself no longer depends on those files.
