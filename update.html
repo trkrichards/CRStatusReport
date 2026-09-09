@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit Your Weekly Update — Commercial Readiness</title>
+<link rel="stylesheet" href="assets/brand.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <img src="assets/logo-graphite.svg" alt="Elsevier">
+    <nav><a href="index.html">View combined report</a></nav>
+  </div>
+
+  <h1 class="title">Submit your weekly update</h1>
+  <p class="subtitle">Commercial Readiness — Weekly Status Report</p>
+  <hr class="hr-orange">
+
+  <div class="note">
+    Pull from your Outlook email and calendar, Teams chats, prior status reports,
+    and meeting notes from the past 7 days. For each project you touched this
+    week, write 1&ndash;4 sentences in third person, starting with your name
+    (e.g. &ldquo;Barry finalized&hellip;&rdquo;). State what you did and the
+    current status &mdash; no filler, no speculation. Leave any project blank
+    if you have nothing to report.
+  </div>
+
+  <div class="top-controls">
+    <div class="field">
+      <label for="employee"><strong>Your name</strong></label>
+      <select id="employee">
+        <option value="">Select&hellip;</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="weekOf"><strong>Week of</strong></label>
+      <input type="date" id="weekOf">
+    </div>
+    <div class="field">
+      <button class="btn secondary" id="loadBtn" type="button">Load my last saved update</button>
+    </div>
+  </div>
+  <p class="status-line" id="loadStatus"></p>
+
+  <form id="updateForm"></form>
+
+  <div class="field">
+    <label for="ooo"><strong>Upcoming out of office</strong></label>
+    <label class="hint">Any planned time out in the next 1&ndash;2 weeks. Enter &ldquo;None&rdquo; if not applicable.</label>
+    <input type="text" id="ooo" placeholder="None">
+  </div>
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="signOff">
+    <label for="signOff">I confirm the updates above are accurate and complete for this week.</label>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="downloadBtn" type="button">Download my update file</button>
+    <span class="status-line" id="saveStatus"></span>
+  </div>
+
+  <div class="note">
+    <strong>Publishing your update:</strong> clicking &ldquo;Download my update
+    file&rdquo; saves a file named <code>&lt;yourname&gt;.json</code> to your
+    downloads folder. Move that file into the <code>/data</code> folder of the
+    <code>CRStatusReport</code> GitHub repo (replacing the previous version
+    of your file), then commit and push &mdash; or upload it directly on
+    GitHub.com if you don&rsquo;t use git locally. Once pushed, GitHub Pages
+    will republish the combined report automatically within a minute or two.
+  </div>
+
+  <footer class="page-footer">
+    <span>Commercial Readiness &mdash; Weekly Status Report</span>
+    <span>Update form</span>
+  </footer>
+</div>
+
+<script src="assets/projects.js"></script>
+<script>
+(function(){
+  const empSelect = document.getElementById("employee");
+  SUBMITTING_EMPLOYEES.forEach(function(name){
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    empSelect.appendChild(opt);
+  });
+
+  // default "week of" to the most recent Wednesday (report cadence)
+  (function(){
+    const d = new Date();
+    const day = d.getDay(); // 0 Sun .. 6 Sat
+    const diff = (day - 3 + 7) % 7; // 3 = Wednesday
+    d.setDate(d.getDate() - diff);
+    document.getElementById("weekOf").value = d.toISOString().slice(0,10);
+  })();
+
+  const form = document.getElementById("updateForm");
+
+  function renderForm(){
+    form.innerHTML = "";
+    GROUPS.forEach(function(group){
+      const band = document.createElement("div");
+      band.className = "section-band";
+      band.textContent = group.title;
+      form.appendChild(band);
+
+      group.items.forEach(function(item){
+        const wrap = document.createElement("div");
+        wrap.className = "field";
+        wrap.innerHTML =
+          '<label for="f-' + item.id + '"><strong>' + item.name + '</strong></label>' +
+          '<label class="hint">' + PROMPT_HINT + '</label>' +
+          '<textarea id="f-' + item.id + '" data-item="' + item.id + '" placeholder="No updates this week"></textarea>';
+        form.appendChild(wrap);
+      });
+    });
+  }
+  renderForm();
+
+  function currentEmployee(){ return empSelect.value; }
+
+  function fileNameFor(name){
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "") + ".json";
+  }
+
+  function collect(){
+    const updates = {};
+    ALL_ITEMS.forEach(function(item){
+      const el = document.getElementById("f-" + item.id);
+      updates[item.id] = el ? el.value.trim() : "";
+    });
+    return {
+      employee: currentEmployee(),
+      weekOf: document.getElementById("weekOf").value,
+      ooo: document.getElementById("ooo").value.trim() || "None",
+      signedOff: document.getElementById("signOff").checked,
+      updates: updates,
+      savedAt: new Date().toISOString()
+    };
+  }
+
+  function populate(data){
+    document.getElementById("weekOf").value = data.weekOf || document.getElementById("weekOf").value;
+    document.getElementById("ooo").value = data.ooo && data.ooo !== "None" ? data.ooo : "";
+    document.getElementById("signOff").checked = !!data.signedOff;
+    ALL_ITEMS.forEach(function(item){
+      const el = document.getElementById("f-" + item.id);
+      if (el && data.updates) el.value = data.updates[item.id] || "";
+    });
+  }
+
+  document.getElementById("loadBtn").addEventListener("click", function(){
+    const name = currentEmployee();
+    const statusEl = document.getElementById("loadStatus");
+    if (!name){ statusEl.textContent = "Select your name first."; statusEl.className = "status-line"; return; }
+    statusEl.textContent = "Loading\u2026";
+    fetch("data/" + fileNameFor(name) + "?t=" + Date.now())
+      .then(function(r){ if (!r.ok) throw new Error("no file"); return r.json(); })
+      .then(function(data){
+        populate(data);
+        statusEl.textContent = "Loaded your last saved update from data/" + fileNameFor(name) + ".";
+        statusEl.className = "status-line ok";
+      })
+      .catch(function(){
+        statusEl.textContent = "No saved update found yet for " + name + " \u2014 starting fresh.";
+        statusEl.className = "status-line";
+      });
+  });
+
+  document.getElementById("downloadBtn").addEventListener("click", function(){
+    const name = currentEmployee();
+    const statusEl = document.getElementById("saveStatus");
+    if (!name){ statusEl.textContent = "Select your name first."; statusEl.className = "status-line"; return; }
+    const data = collect();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileNameFor(name);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = "Downloaded " + fileNameFor(name) + ". Commit it to /data in the repo to publish.";
+    statusEl.className = "status-line ok";
+  });
+})();
+</script>
+</body>
+</html>

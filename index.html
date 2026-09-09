@@ -2,722 +2,136 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weekly Status Update Assistant</title>
-<style>
-  @font-face {
-    font-family: "Tiempos Text";
-    src: url("fonts/tiempos-text-regular.woff2") format("woff2");
-    font-weight: 400;
-    font-style: normal;
-  }
-  @font-face {
-    font-family: "National 2";
-    src: url("fonts/national-2-regular.woff2") format("woff2");
-    font-weight: 400;
-    font-style: normal;
-  }
-  @font-face {
-    font-family: "National 2";
-    src: url("fonts/national-2-bold.woff2") format("woff2");
-    font-weight: 700;
-    font-style: normal;
-  }
-
-  :root {
-    /* Elsevier brand palette */
-    --vital-orange: #FF551D;
-    --graphite: #1E1E1E;
-    --ink: #544946;
-    --sand: #EEE7D7;
-    --paper: #F7F4EF;
-    --action-blue: #2254FF;
-    --font-serif: "Tiempos Text", Georgia, serif;
-    --font-sans: "National 2", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: var(--font-sans);
-    background: #fff;
-    color: var(--graphite);
-    margin: 0;
-    padding: 40px 24px 80px;
-    line-height: 1.5;
-  }
-  .wrap { max-width: 780px; margin: 0 auto; }
-  .brandbar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 28px;
-  }
-  .brandbar img { height: 22px; display: block; }
-  .brandbar .rule {
-    flex: 1;
-    height: 3px;
-    background: var(--vital-orange);
-    margin-left: 16px;
-  }
-  h1 {
-    font-family: var(--font-serif);
-    font-weight: 400;
-    font-size: 1.7rem;
-    color: var(--graphite);
-    margin-bottom: 4px;
-    letter-spacing: -0.02em;
-  }
-  .subtitle { color: var(--ink); margin-top: 0; margin-bottom: 32px; }
-  .step {
-    border: 1px solid var(--sand);
-    border-radius: 10px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
-    background: var(--paper);
-  }
-  .step h2 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin: 0 0 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--graphite);
-  }
-  .step h2 .num {
-    background: var(--graphite);
-    color: #fff;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-  .step p { color: var(--ink); margin: 6px 0 14px; font-size: 0.92rem; }
-  button {
-    background: var(--action-blue);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 18px;
-    font-size: 0.9rem;
-    font-family: var(--font-sans);
-    font-weight: 700;
-    cursor: pointer;
-  }
-  button:hover { opacity: 0.92; }
-  button.secondary {
-    background: transparent;
-    color: var(--action-blue);
-    border: 1px solid var(--action-blue);
-  }
-  button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  textarea {
-    width: 100%;
-    min-height: 140px;
-    border: 1px solid var(--sand);
-    border-radius: 6px;
-    padding: 12px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    resize: vertical;
-  }
-  details {
-    margin-top: 10px;
-    border-top: 1px dashed var(--sand);
-    padding-top: 10px;
-  }
-  summary { cursor: pointer; color: var(--ink); font-size: 0.85rem; }
-  pre#promptText {
-    white-space: pre-wrap;
-    font-size: 0.8rem;
-    background: #fff;
-    border: 1px solid var(--sand);
-    border-radius: 6px;
-    padding: 12px;
-    margin-top: 10px;
-  }
-  .category-heading {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 0.82rem;
-    color: var(--ink);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin: 18px 0 8px;
-  }
-  .category-heading:first-child { margin-top: 0; }
-  .field {
-    background: #fff;
-    border: 1px solid var(--sand);
-    border-radius: 6px;
-    padding: 14px;
-    margin-bottom: 12px;
-  }
-  .field .field-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-  .field label {
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--graphite);
-  }
-  .badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--ink);
-    background: var(--sand);
-    border-radius: 3px;
-    padding: 2px 7px;
-    line-height: 1.4;
-  }
-  .badge.unmatched {
-    color: #8a5a1f;
-    background: #fff2df;
-  }
-  .field textarea { min-height: 70px; }
-  .unmatched-note {
-    font-size: 0.82rem;
-    color: var(--ink);
-    margin: 4px 0 10px;
-  }
-  .actions-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 6px;
-    flex-wrap: wrap;
-  }
-  .toast {
-    display: inline-block;
-    font-size: 0.82rem;
-    color: #2f7a3e;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .toast.show { opacity: 1; }
-  .savenote {
-    font-size: 0.78rem;
-    color: var(--ink);
-    margin-top: 8px;
-  }
-  #reportPreview {
-    display: none;
-    margin-top: 16px;
-    background: #fff;
-    border: 1px solid var(--sand);
-    border-radius: 6px;
-    padding: 16px 18px;
-  }
-  #reportPreview .category-heading:first-child { margin-top: 0; }
-  #reportPreview ul { margin: 0 0 10px; padding-left: 20px; }
-  #reportPreview li { font-size: 0.88rem; line-height: 1.5; margin-bottom: 6px; }
-  #reportPreview li .placeholder { color: var(--ink); font-style: italic; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commercial Readiness Weekly Status Report</title>
+<link rel="stylesheet" href="assets/brand.css">
 </head>
 <body>
 <div class="wrap">
-  <div class="brandbar">
-    <img src="elsevier-logo-graphite.svg" alt="Elsevier">
-    <div class="rule"></div>
-  </div>
-  <h1>Weekly Status Update Assistant</h1>
-  <p class="subtitle">Copy the prompt into your Claude project once. Every week, run it, paste the result below, and get an editable status report — built to be filled in by more than one person over time.</p>
 
-  <div class="step">
-    <h2><span class="num">1</span> Copy the prompt into your Claude project</h2>
-    <p>Create a Claude project named <strong>Status Update</strong>, paste this into its instructions, swap in your name, and upload your past status reports as project knowledge.</p>
-    <button id="copyPromptBtn">Copy Prompt</button>
-    <span class="toast" id="promptToast">Copied</span>
-    <details>
-      <summary>View prompt</summary>
-      <pre id="promptText"></pre>
-    </details>
+  <div class="masthead">
+    <img src="assets/logo-graphite.svg" alt="Elsevier">
+    <nav><a href="update.html">Submit your update</a></nav>
   </div>
 
-  <div class="step">
-    <h2><span class="num">2</span> Run it weekly, then paste the output here</h2>
-    <p>In your Status Update project, ask Claude: <em>"Run my status update for the week."</em> Paste the full response below — or paste an "Export My Updates" blob a teammate sent you. Either way, this <strong>layers</strong> new content in on top of what's already filled out; it only fills in items your paste actually covers, and never blanks out someone else's items.</p>
-    <textarea id="pasteInput" placeholder="Paste Claude's output here, or a teammate's exported updates..."></textarea>
-    <br><br>
-    <button id="parseBtn">Add These Updates</button>
-    <span class="toast" id="parseToast">Merged in</span>
-  </div>
+  <h1 class="title">Commercial Readiness Weekly Status Report</h1>
+  <p class="subtitle" id="weekOfLine">Loading&hellip;</p>
+  <hr class="hr-orange">
 
-  <div class="step">
-    <h2><span class="num">3</span> Review and edit each item</h2>
-    <p>Every tracked item has its own field below, grouped by initiative — whoever owns an item can fill in or edit it directly, regardless of who filled in the others. Changes save automatically for step 4 and for the report form below.</p>
-    <div id="fieldsContainer"></div>
-    <div class="actions-row">
-      <button id="saveChangesBtn" class="secondary">Save Changes</button>
-      <span class="toast" id="saveToast">Saved</span>
-      <button id="exportBtn" class="secondary">Export My Updates</button>
-      <span class="toast" id="exportToast">Copied</span>
-    </div>
-    <p class="savenote">"Export My Updates" copies everything currently filled in on this device as a small text blob — send it to whoever's consolidating, and they paste it into their own step 2 to layer it in.</p>
-  </div>
+  <div id="report"></div>
 
-  <div class="step">
-    <h2><span class="num">4</span> Get the finished report</h2>
-    <p>Compiles everything above into one block of text, ready to paste into the team's status report, or view it formatted right here first.</p>
-    <div class="actions-row">
-      <button id="viewReportBtn" class="secondary">View Report</button>
-      <button id="copyReportBtn" class="secondary">Copy Final Report</button>
-      <span class="toast" id="reportToast">Copied</span>
-    </div>
-    <div id="reportPreview"></div>
-  </div>
+  <div class="section-band">Upcoming Out of Office</div>
+  <table id="oooTable">
+    <thead><tr><th>Team member</th><th>Planned OOO</th></tr></thead>
+    <tbody></tbody>
+  </table>
 
-  <div class="step">
-    <h2><span class="num">5</span> Open the report form</h2>
-    <p>Opens <code>report-form.html</code> on this same device — the final version, with your project updates plus out-of-office, recognition, and sign-off. Do this after everyone's updates are layered in above.</p>
-    <button id="openFormBtn" class="secondary" disabled>Open Report Form</button>
-    <p class="savenote">Reads from this same browser's storage — it doesn't sync to teammates or other computers on its own, even though this file lives in a shared folder. Use "Export My Updates" to hand off contributions between devices.</p>
-  </div>
+  <div class="section-band">Sign Off</div>
+  <table id="signOffTable">
+    <thead><tr><th>Team member</th><th>Status</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <footer class="page-footer">
+    <span>Commercial Readiness &mdash; Weekly Status Report</span>
+    <span id="generatedAt"></span>
+  </footer>
 </div>
 
+<script src="assets/projects.js"></script>
 <script>
-const STORAGE_KEY = 'statusUpdateItems';
-
-// Fixed tracked-item list — keep this in sync with the list embedded in prompt.md.
-// If the team's tracked items change, update both places together.
-const STRUCTURE = [
-  { category: "Physician and Pharmacist Initiatives", items: [
-    "ClinicalKey Unified Vision (CK+?)",
-    "ClinicalKey for Nursing Unified Vision (CKN+?)",
-    "ClinicalKey (CK) Physician BAU",
-    "CK AI BAU",
-    "CPCK BAU",
-    "CK for Medical Schools BAU",
-    "CK Test Prep BAU",
-    "NEOID LMS Access CK Student"
-  ]},
-  { category: "Nursing and Patient Education Initiatives", items: [
-    "Clinical Learning Hub",
-    "CK Student NOAM/Clinical Cases BAU",
-    "CK Nursing BAU",
-    "Patient Pass/PE Products BAU",
-    "Clinical eLearning BAU"
-  ]},
-  { category: "Specialist Solution Initiatives", items: [
-    "ClinicalPath BAU",
-    "ClinicalPath Provider Reports",
-    "PSS BAU"
-  ]},
-  { category: "Strategic/Corporate Initiatives", items: [
-    "eLearning Localization"
-  ]}
-];
-// All tracked items are currently Active; this is a per-item project status,
-// editable here if an item's status ever changes (e.g. to "On hold").
-const DEFAULT_STATUS = "Active";
-
-const PROMPT_TEXT = `You are my Status Update Assistant. My name is [YOUR NAME].
-
-When I say "run my status update for the week," do the following:
-
-1. Report on exactly these tracked items, grouped and ordered as shown below.
-   Do not add, remove, rename, or reorder items.
-
-   Physician and Pharmacist Initiatives
-   - ClinicalKey Unified Vision (CK+?)
-   - ClinicalKey for Nursing Unified Vision (CKN+?)
-   - ClinicalKey (CK) Physician BAU
-   - CK AI BAU
-   - CPCK BAU
-   - CK for Medical Schools BAU
-   - CK Test Prep BAU
-   - NEOID LMS Access CK Student
-
-   Nursing and Patient Education Initiatives
-   - Clinical Learning Hub
-   - CK Student NOAM/Clinical Cases BAU
-   - CK Nursing BAU
-   - Patient Pass/PE Products BAU
-   - Clinical eLearning BAU
-
-   Specialist Solution Initiatives
-   - ClinicalPath BAU
-   - ClinicalPath Provider Reports
-   - PSS BAU
-
-   Strategic/Corporate Initiatives
-   - eLearning Localization
-
-2. Search my Outlook email and Microsoft Teams chats from the past 7 days for
-   activity related to each item above. If an item isn't one of mine to
-   report on, that's fine — just leave it blank rather than guessing.
-
-3. Use my historical status report files as the source of truth for tone,
-   level of detail, and terminology — but not for the item list itself,
-   since that's fixed above.
-
-4. For each item, write ONE concise update, 2-4 sentences, in third person,
-   starting with my name. State what I did and the current status. No
-   filler, no repeating the item name back, no speculation. If you find no
-   relevant activity for an item, still include its heading below but leave
-   the paragraph underneath it completely blank — no placeholder sentence,
-   no "no updates" text, just nothing.
-
-5. Do not fabricate details. Only report what you actually found in Outlook,
-   Teams, or the historical files.
-
-6. Output ONLY in this exact structure, with no extra commentary before or
-   after it:
-
-## [Item Name]
-[Third-person update paragraph, or nothing if there's no update]
-
-## [Next Item Name]
-[Third-person update paragraph, or nothing if there's no update]
-
-   Repeat for every tracked item listed above, in the same order, using
-   each item's exact name (e.g., "CK AI BAU") as the heading. Every item
-   gets a heading even when its paragraph is blank.`;
-
-document.getElementById('promptText').textContent = PROMPT_TEXT;
-
-function flashToast(id) {
-  const el = document.getElementById(id);
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 1500);
-}
-
-document.getElementById('copyPromptBtn').addEventListener('click', () => {
-  navigator.clipboard.writeText(PROMPT_TEXT).then(() => flashToast('promptToast'));
-});
-
-function normalize(s) {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function allItemNames() {
-  return STRUCTURE.flatMap(cat => cat.items);
-}
-
-function canonicalName(name) {
-  return allItemNames().find(n => normalize(n) === normalize(name)) || null;
-}
-
-function parseItems(raw) {
-  const lines = raw.split('\n');
-  const parsed = [];
-  let current = null;
-  for (const line of lines) {
-    const heading = line.match(/^#{1,3}\s+(.*)/);
-    if (heading) {
-      if (current) parsed.push(current);
-      current = { name: heading[1].trim(), body: [] };
-    } else if (current) {
-      current.body.push(line);
-    }
+(function(){
+  function fileNameFor(name){
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "") + ".json";
   }
-  if (current) parsed.push(current);
-  return parsed.map(it => ({ name: it.name, body: it.body.join('\n').trim() }));
-}
 
-// Try reading pasted input as a previously-exported JSON blob
-// ({items:[{name,body,...}]}). Returns null if it isn't one, so the caller
-// falls back to parsing it as Claude's "## Heading" markdown output.
-function tryParseExportedJSON(raw) {
-  try {
-    const obj = JSON.parse(raw);
-    if (obj && Array.isArray(obj.items)) return obj.items;
-  } catch (e) {
-    // not JSON — that's fine, it's probably Claude's markdown output
+  function fetchEmployee(name){
+    return fetch("data/" + fileNameFor(name) + "?t=" + Date.now())
+      .then(function(r){ if (!r.ok) throw new Error("missing"); return r.json(); })
+      .then(function(data){ return { name: name, data: data, found: true }; })
+      .catch(function(){ return { name: name, data: null, found: false }; });
   }
-  return null;
-}
 
-// Split a fresh paste (either Claude's markdown output or an exported JSON
-// blob) into { bodies, unmatched } the same way regardless of source.
-function extractIncoming(raw) {
-  const jsonItems = tryParseExportedJSON(raw);
-  if (jsonItems) {
-    const bodies = {};
-    const unmatched = [];
-    jsonItems.forEach(it => {
-      const canonical = canonicalName(it.name || '');
-      if (canonical) bodies[canonical] = it.body || '';
-      else unmatched.push({ name: it.name, body: it.body || '' });
+  Promise.all(EMPLOYEES.map(fetchEmployee)).then(function(results){
+    renderReport(results);
+  });
+
+  function renderReport(results){
+    const found = results.filter(function(r){ return r.found; });
+
+    // "Week of" line — most recent weekOf across submitted files, else today
+    let weekOf = null;
+    found.forEach(function(r){
+      if (r.data.weekOf && (!weekOf || r.data.weekOf > weekOf)) weekOf = r.data.weekOf;
     });
-    return { bodies, unmatched };
-  }
-  const parsed = parseItems(raw);
-  if (parsed.length === 0) return null;
-  return matchParsedToStructure(parsed);
-}
+    const weekOfDate = weekOf ? new Date(weekOf + "T00:00:00") : new Date();
+    document.getElementById("weekOfLine").textContent =
+      "Week of " + weekOfDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-// Map freshly-parsed headings onto the known item list (by normalized name).
-// Anything that doesn't match a known item is kept, not dropped, and shown
-// in a separate "unmatched" section so nothing from Claude's output is lost.
-function matchParsedToStructure(parsed) {
-  const byNorm = new Map(parsed.map(p => [normalize(p.name), p.body]));
-  const bodies = {};
-  allItemNames().forEach(name => {
-    const key = normalize(name);
-    if (byNorm.has(key)) {
-      bodies[name] = byNorm.get(key);
-      byNorm.delete(key);
-    }
-  });
-  const unmatched = parsed.filter(p => byNorm.has(normalize(p.name)));
-  return { bodies, unmatched };
-}
+    // ---- Project sections ----
+    const reportEl = document.getElementById("report");
+    reportEl.innerHTML = "";
 
-function currentSavedItems() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return null;
-  try {
-    return JSON.parse(saved);
-  } catch (e) {
-    return null;
-  }
-}
+    GROUPS.forEach(function(group){
+      const band = document.createElement("div");
+      band.className = "section-band";
+      band.textContent = group.title;
+      reportEl.appendChild(band);
 
-// Read what's currently on screen (not just in storage) — this is the "layer
-// underneath" that a new paste gets merged onto, so in-progress manual edits
-// count too, not just whatever was last saved.
-function currentFieldState() {
-  const bodies = {};
-  const unmatched = [];
-  document.querySelectorAll('#fieldsContainer .field textarea').forEach(f => {
-    if (f.dataset.category) {
-      bodies[f.dataset.itemName] = f.value;
-    } else {
-      unmatched.push({ name: f.dataset.itemName, body: f.value });
-    }
-  });
-  return { bodies, unmatched };
-}
+      group.items.forEach(function(item){
+        const sentences = [];
+        found.forEach(function(r){
+          const text = r.data.updates && r.data.updates[item.id];
+          if (text && text.trim()) sentences.push(text.trim());
+        });
 
-function getCurrentItemsArray() {
-  return Array.from(document.querySelectorAll('#fieldsContainer .field textarea')).map(f => ({
-    name: f.dataset.itemName,
-    body: f.value.trim(),
-    category: f.dataset.category || null,
-    status: f.dataset.status || null
-  }));
-}
-
-function saveItemsToStorage() {
-  const items = getCurrentItemsArray();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, updatedAt: new Date().toISOString() }));
-  document.getElementById('openFormBtn').disabled = !items.some(it => it.body);
-}
-
-function makeField(name, body, category, status) {
-  const wrap = document.createElement('div');
-  wrap.className = 'field';
-
-  const head = document.createElement('div');
-  head.className = 'field-head';
-  const label = document.createElement('label');
-  label.textContent = name;
-  head.appendChild(label);
-  if (status) {
-    const badge = document.createElement('span');
-    badge.className = 'badge';
-    badge.textContent = status;
-    head.appendChild(badge);
-  }
-  wrap.appendChild(head);
-
-  const textarea = document.createElement('textarea');
-  textarea.value = body || '';
-  textarea.placeholder = 'No updates yet';
-  textarea.dataset.itemName = name;
-  if (category) textarea.dataset.category = category;
-  if (status) textarea.dataset.status = status;
-  textarea.addEventListener('input', saveItemsToStorage);
-  wrap.appendChild(textarea);
-
-  return wrap;
-}
-
-function renderFields(bodies, unmatched) {
-  const container = document.getElementById('fieldsContainer');
-  container.innerHTML = '';
-
-  STRUCTURE.forEach(cat => {
-    const heading = document.createElement('div');
-    heading.className = 'category-heading';
-    heading.textContent = cat.category;
-    container.appendChild(heading);
-    cat.items.forEach(name => {
-      container.appendChild(makeField(name, (bodies && bodies[name]) || '', cat.category, DEFAULT_STATUS));
+        const itemEl = document.createElement("div");
+        itemEl.className = "item";
+        const combined = sentences.join(" ");
+        itemEl.innerHTML =
+          "<h3>" + item.name + "</h3>" +
+          (combined
+            ? "<p class=\"body\">" + escapeHtml(combined) + "</p>"
+            : "<p class=\"empty\">No updates yet.</p>");
+        reportEl.appendChild(itemEl);
+      });
     });
-  });
 
-  if (unmatched && unmatched.length) {
-    const heading = document.createElement('div');
-    heading.className = 'category-heading';
-    heading.textContent = 'Unmatched from pasted output';
-    container.appendChild(heading);
-    const note = document.createElement('p');
-    note.className = 'unmatched-note';
-    note.textContent = 'These headings didn\'t match a tracked item name exactly — check for a typo, or edit the name below to fold it into the right field.';
-    container.appendChild(note);
-    unmatched.forEach(u => {
-      const field = makeField(u.name, u.body, null, null);
-      const badge = document.createElement('span');
-      badge.className = 'badge unmatched';
-      badge.textContent = 'unmatched';
-      field.querySelector('.field-head').appendChild(badge);
-      container.appendChild(field);
+    // ---- Out of Office ----
+    const oooBody = document.querySelector("#oooTable tbody");
+    oooBody.innerHTML = "";
+    EMPLOYEES.forEach(function(name){
+      const r = results.find(function(x){ return x.name === name; });
+      const ooo = (r && r.found && r.data.ooo) ? r.data.ooo : "None";
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td><strong>" + name + "</strong></td><td>" + escapeHtml(ooo) + "</td>";
+      oooBody.appendChild(tr);
     });
-  }
 
-  saveItemsToStorage();
-}
-
-// Layer `incoming` on top of `base`: an item only gets overwritten if the
-// incoming paste actually has non-blank content for it. This is what lets
-// several people paste their own (partial) updates one after another —
-// each contributes without erasing anyone else's already-filled items.
-function layerBodies(base, incoming) {
-  const merged = { ...base };
-  Object.keys(incoming).forEach(name => {
-    if (incoming[name] && incoming[name].trim()) merged[name] = incoming[name];
-  });
-  return merged;
-}
-
-function layerUnmatched(base, incoming) {
-  const byNorm = new Map(base.map(u => [normalize(u.name), u]));
-  incoming.forEach(u => {
-    if (!u.body || !u.body.trim()) return;
-    byNorm.set(normalize(u.name), u);
-  });
-  return Array.from(byNorm.values());
-}
-
-document.getElementById('parseBtn').addEventListener('click', () => {
-  const raw = document.getElementById('pasteInput').value;
-  if (!raw.trim()) {
-    alert('Paste Claude\'s output, or a teammate\'s exported updates, first.');
-    return;
-  }
-  const incoming = extractIncoming(raw);
-  if (!incoming) {
-    alert('Couldn\'t read that as Claude\'s output or an exported-updates blob. Make sure you pasted the full thing.');
-    return;
-  }
-  const existing = currentFieldState();
-  const mergedBodies = layerBodies(existing.bodies, incoming.bodies);
-  const mergedUnmatched = layerUnmatched(existing.unmatched, incoming.unmatched);
-  renderFields(mergedBodies, mergedUnmatched);
-  document.getElementById('pasteInput').value = '';
-  flashToast('parseToast');
-});
-
-document.getElementById('saveChangesBtn').addEventListener('click', () => {
-  saveItemsToStorage();
-  flashToast('saveToast');
-});
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-  const items = getCurrentItemsArray().filter(it => it.body);
-  if (items.length === 0) {
-    alert('Nothing filled in yet to export.');
-    return;
-  }
-  const blob = JSON.stringify({ items, exportedAt: new Date().toISOString() });
-  navigator.clipboard.writeText(blob).then(() => flashToast('exportToast'));
-});
-
-document.getElementById('copyReportBtn').addEventListener('click', () => {
-  const fields = document.querySelectorAll('#fieldsContainer .field textarea');
-  if (fields.length === 0 || !Array.from(fields).some(f => f.value.trim())) {
-    alert('Nothing to copy yet — paste an update and click "Add These Updates" first.');
-    return;
-  }
-  const parts = Array.from(fields).map(f => `${f.dataset.itemName}\n${f.value.trim() || 'No updates yet'}`);
-  navigator.clipboard.writeText(parts.join('\n\n')).then(() => flashToast('reportToast'));
-});
-
-function renderReportPreview() {
-  const preview = document.getElementById('reportPreview');
-  preview.innerHTML = '';
-  const fields = document.querySelectorAll('#fieldsContainer .field textarea');
-
-  const byCategory = new Map();
-  const order = [];
-  fields.forEach(f => {
-    const cat = f.dataset.category || 'Unmatched from pasted output';
-    if (!byCategory.has(cat)) { byCategory.set(cat, []); order.push(cat); }
-    byCategory.get(cat).push(f);
-  });
-
-  order.forEach(cat => {
-    const heading = document.createElement('div');
-    heading.className = 'category-heading';
-    heading.textContent = cat;
-    preview.appendChild(heading);
-    const ul = document.createElement('ul');
-    byCategory.get(cat).forEach(f => {
-      const li = document.createElement('li');
-      const strong = document.createElement('strong');
-      strong.textContent = f.dataset.itemName + ': ';
-      li.appendChild(strong);
-      const val = f.value.trim();
-      if (val) {
-        li.appendChild(document.createTextNode(val));
-      } else {
-        const span = document.createElement('span');
-        span.className = 'placeholder';
-        span.textContent = 'No updates yet';
-        li.appendChild(span);
-      }
-      ul.appendChild(li);
+    // ---- Sign Off ----
+    const signBody = document.querySelector("#signOffTable tbody");
+    signBody.innerHTML = "";
+    EMPLOYEES.forEach(function(name){
+      const r = results.find(function(x){ return x.name === name; });
+      const signed = !!(r && r.found && r.data.signedOff);
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td><strong>" + name + "</strong></td>" +
+        "<td class=\"" + (signed ? "status-signed" : "status-pending") + "\">" +
+        (signed ? "Signed" : "Not yet signed") + "</td>";
+      signBody.appendChild(tr);
     });
-    preview.appendChild(ul);
-  });
-}
 
-document.getElementById('viewReportBtn').addEventListener('click', () => {
-  const preview = document.getElementById('reportPreview');
-  const btn = document.getElementById('viewReportBtn');
-  const showing = preview.style.display === 'block';
-  if (showing) {
-    preview.style.display = 'none';
-    btn.textContent = 'View Report';
-  } else {
-    renderReportPreview();
-    preview.style.display = 'block';
-    btn.textContent = 'Hide Report';
+    document.getElementById("generatedAt").textContent =
+      "Generated " + new Date().toLocaleString("en-US");
   }
-});
 
-document.getElementById('openFormBtn').addEventListener('click', () => {
-  window.open('report-form.html', '_blank');
-});
-
-// On load: always show the full tracked-item list, filled in with whatever
-// was saved previously (if anything), so step 3 is never empty.
-(function init() {
-  const saved = currentSavedItems();
-  const bodies = {};
-  let unmatched = [];
-  if (saved && saved.items) {
-    saved.items.forEach(it => {
-      const canonical = canonicalName(it.name);
-      if (canonical) {
-        bodies[canonical] = it.body;
-      } else {
-        unmatched.push(it);
-      }
-    });
+  function escapeHtml(s){
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
-  renderFields(bodies, unmatched);
 })();
 </script>
 </body>
