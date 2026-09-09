@@ -194,6 +194,7 @@
     align-items: center;
     gap: 10px;
     margin-top: 6px;
+    flex-wrap: wrap;
   }
   .toast {
     display: inline-block;
@@ -229,7 +230,7 @@
     <div class="rule"></div>
   </div>
   <h1>Weekly Status Update Assistant</h1>
-  <p class="subtitle">Copy the prompt into your Claude project once. Every week, run it, paste the result below, and get an editable status report.</p>
+  <p class="subtitle">Copy the prompt into your Claude project once. Every week, run it, paste the result below, and get an editable status report — built to be filled in by more than one person over time.</p>
 
   <div class="step">
     <h2><span class="num">1</span> Copy the prompt into your Claude project</h2>
@@ -244,20 +245,24 @@
 
   <div class="step">
     <h2><span class="num">2</span> Run it weekly, then paste the output here</h2>
-    <p>In your Status Update project, ask Claude: <em>"Run my status update for the week."</em> Paste the full response below.</p>
-    <textarea id="pasteInput" placeholder="Paste Claude's output here..."></textarea>
+    <p>In your Status Update project, ask Claude: <em>"Run my status update for the week."</em> Paste the full response below — or paste an "Export My Updates" blob a teammate sent you. Either way, this <strong>layers</strong> new content in on top of what's already filled out; it only fills in items your paste actually covers, and never blanks out someone else's items.</p>
+    <textarea id="pasteInput" placeholder="Paste Claude's output here, or a teammate's exported updates..."></textarea>
     <br><br>
-    <button id="parseBtn">Update Status Report</button>
+    <button id="parseBtn">Add These Updates</button>
+    <span class="toast" id="parseToast">Merged in</span>
   </div>
 
   <div class="step">
     <h2><span class="num">3</span> Review and edit each item</h2>
-    <p>Every tracked item has its own field below, grouped by initiative. Edits save automatically as you type — use "Save Changes" any time you want an explicit confirmation.</p>
+    <p>Every tracked item has its own field below, grouped by initiative — whoever owns an item can fill in or edit it directly, regardless of who filled in the others. Changes save automatically for step 4 and for the report form below.</p>
     <div id="fieldsContainer"></div>
     <div class="actions-row">
       <button id="saveChangesBtn" class="secondary">Save Changes</button>
       <span class="toast" id="saveToast">Saved</span>
+      <button id="exportBtn" class="secondary">Export My Updates</button>
+      <span class="toast" id="exportToast">Copied</span>
     </div>
+    <p class="savenote">"Export My Updates" copies everything currently filled in on this device as a small text blob — send it to whoever's consolidating, and they paste it into their own step 2 to layer it in.</p>
   </div>
 
   <div class="step">
@@ -273,9 +278,9 @@
 
   <div class="step">
     <h2><span class="num">5</span> Open the report form</h2>
-    <p>Opens <code>report-form.html</code> on this same device — the final version, with your project updates plus out-of-office, recognition, and sign-off. Do this after editing your items in step 3.</p>
+    <p>Opens <code>report-form.html</code> on this same device — the final version, with your project updates plus out-of-office, recognition, and sign-off. Do this after everyone's updates are layered in above.</p>
     <button id="openFormBtn" class="secondary" disabled>Open Report Form</button>
-    <p class="savenote">Only works in the same browser on this device — it doesn't sync to teammates or other computers, even though this file lives in a shared folder.</p>
+    <p class="savenote">Reads from this same browser's storage — it doesn't sync to teammates or other computers on its own, even though this file lives in a shared folder. Use "Export My Updates" to hand off contributions between devices.</p>
   </div>
 </div>
 
@@ -348,7 +353,8 @@ When I say "run my status update for the week," do the following:
    - eLearning Localization
 
 2. Search my Outlook email and Microsoft Teams chats from the past 7 days for
-   activity related to each item above.
+   activity related to each item above. If an item isn't one of mine to
+   report on, that's fine — just leave it blank rather than guessing.
 
 3. Use my historical status report files as the source of truth for tone,
    level of detail, and terminology — but not for the item list itself,
@@ -397,6 +403,10 @@ function allItemNames() {
   return STRUCTURE.flatMap(cat => cat.items);
 }
 
+function canonicalName(name) {
+  return allItemNames().find(n => normalize(n) === normalize(name)) || null;
+}
+
 function parseItems(raw) {
   const lines = raw.split('\n');
   const parsed = [];
@@ -412,6 +422,38 @@ function parseItems(raw) {
   }
   if (current) parsed.push(current);
   return parsed.map(it => ({ name: it.name, body: it.body.join('\n').trim() }));
+}
+
+// Try reading pasted input as a previously-exported JSON blob
+// ({items:[{name,body,...}]}). Returns null if it isn't one, so the caller
+// falls back to parsing it as Claude's "## Heading" markdown output.
+function tryParseExportedJSON(raw) {
+  try {
+    const obj = JSON.parse(raw);
+    if (obj && Array.isArray(obj.items)) return obj.items;
+  } catch (e) {
+    // not JSON — that's fine, it's probably Claude's markdown output
+  }
+  return null;
+}
+
+// Split a fresh paste (either Claude's markdown output or an exported JSON
+// blob) into { bodies, unmatched } the same way regardless of source.
+function extractIncoming(raw) {
+  const jsonItems = tryParseExportedJSON(raw);
+  if (jsonItems) {
+    const bodies = {};
+    const unmatched = [];
+    jsonItems.forEach(it => {
+      const canonical = canonicalName(it.name || '');
+      if (canonical) bodies[canonical] = it.body || '';
+      else unmatched.push({ name: it.name, body: it.body || '' });
+    });
+    return { bodies, unmatched };
+  }
+  const parsed = parseItems(raw);
+  if (parsed.length === 0) return null;
+  return matchParsedToStructure(parsed);
 }
 
 // Map freshly-parsed headings onto the known item list (by normalized name).
@@ -441,14 +483,33 @@ function currentSavedItems() {
   }
 }
 
-function saveItemsToStorage() {
-  const fields = document.querySelectorAll('#fieldsContainer .field textarea');
-  const items = Array.from(fields).map(f => ({
+// Read what's currently on screen (not just in storage) — this is the "layer
+// underneath" that a new paste gets merged onto, so in-progress manual edits
+// count too, not just whatever was last saved.
+function currentFieldState() {
+  const bodies = {};
+  const unmatched = [];
+  document.querySelectorAll('#fieldsContainer .field textarea').forEach(f => {
+    if (f.dataset.category) {
+      bodies[f.dataset.itemName] = f.value;
+    } else {
+      unmatched.push({ name: f.dataset.itemName, body: f.value });
+    }
+  });
+  return { bodies, unmatched };
+}
+
+function getCurrentItemsArray() {
+  return Array.from(document.querySelectorAll('#fieldsContainer .field textarea')).map(f => ({
     name: f.dataset.itemName,
     body: f.value.trim(),
     category: f.dataset.category || null,
     status: f.dataset.status || null
   }));
+}
+
+function saveItemsToStorage() {
+  const items = getCurrentItemsArray();
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, updatedAt: new Date().toISOString() }));
   document.getElementById('openFormBtn').disabled = !items.some(it => it.body);
 }
@@ -518,19 +579,44 @@ function renderFields(bodies, unmatched) {
   saveItemsToStorage();
 }
 
+// Layer `incoming` on top of `base`: an item only gets overwritten if the
+// incoming paste actually has non-blank content for it. This is what lets
+// several people paste their own (partial) updates one after another —
+// each contributes without erasing anyone else's already-filled items.
+function layerBodies(base, incoming) {
+  const merged = { ...base };
+  Object.keys(incoming).forEach(name => {
+    if (incoming[name] && incoming[name].trim()) merged[name] = incoming[name];
+  });
+  return merged;
+}
+
+function layerUnmatched(base, incoming) {
+  const byNorm = new Map(base.map(u => [normalize(u.name), u]));
+  incoming.forEach(u => {
+    if (!u.body || !u.body.trim()) return;
+    byNorm.set(normalize(u.name), u);
+  });
+  return Array.from(byNorm.values());
+}
+
 document.getElementById('parseBtn').addEventListener('click', () => {
   const raw = document.getElementById('pasteInput').value;
   if (!raw.trim()) {
-    alert('Paste Claude\'s output first.');
+    alert('Paste Claude\'s output, or a teammate\'s exported updates, first.');
     return;
   }
-  const parsed = parseItems(raw);
-  if (parsed.length === 0) {
-    alert('No "## Item Name" headings found. Make sure you pasted Claude\'s full response.');
+  const incoming = extractIncoming(raw);
+  if (!incoming) {
+    alert('Couldn\'t read that as Claude\'s output or an exported-updates blob. Make sure you pasted the full thing.');
     return;
   }
-  const { bodies, unmatched } = matchParsedToStructure(parsed);
-  renderFields(bodies, unmatched);
+  const existing = currentFieldState();
+  const mergedBodies = layerBodies(existing.bodies, incoming.bodies);
+  const mergedUnmatched = layerUnmatched(existing.unmatched, incoming.unmatched);
+  renderFields(mergedBodies, mergedUnmatched);
+  document.getElementById('pasteInput').value = '';
+  flashToast('parseToast');
 });
 
 document.getElementById('saveChangesBtn').addEventListener('click', () => {
@@ -538,10 +624,20 @@ document.getElementById('saveChangesBtn').addEventListener('click', () => {
   flashToast('saveToast');
 });
 
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const items = getCurrentItemsArray().filter(it => it.body);
+  if (items.length === 0) {
+    alert('Nothing filled in yet to export.');
+    return;
+  }
+  const blob = JSON.stringify({ items, exportedAt: new Date().toISOString() });
+  navigator.clipboard.writeText(blob).then(() => flashToast('exportToast'));
+});
+
 document.getElementById('copyReportBtn').addEventListener('click', () => {
   const fields = document.querySelectorAll('#fieldsContainer .field textarea');
   if (fields.length === 0 || !Array.from(fields).some(f => f.value.trim())) {
-    alert('Nothing to copy yet — paste an update and click "Update Status Report" first.');
+    alert('Nothing to copy yet — paste an update and click "Add These Updates" first.');
     return;
   }
   const parts = Array.from(fields).map(f => `${f.dataset.itemName}\n${f.value.trim() || 'No updates yet'}`);
@@ -612,9 +708,8 @@ document.getElementById('openFormBtn').addEventListener('click', () => {
   const bodies = {};
   let unmatched = [];
   if (saved && saved.items) {
-    const names = allItemNames();
     saved.items.forEach(it => {
-      const canonical = names.find(name => normalize(name) === normalize(it.name));
+      const canonical = canonicalName(it.name);
       if (canonical) {
         bodies[canonical] = it.body;
       } else {

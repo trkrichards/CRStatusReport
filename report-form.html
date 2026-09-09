@@ -196,7 +196,7 @@
     color: var(--action-blue);
     border: 1px solid var(--action-blue);
   }
-  .actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+  .actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
   .toast {
     font-size: 0.82rem;
     color: #2f7a3e;
@@ -204,6 +204,32 @@
     transition: opacity 0.2s;
   }
   .toast.show { opacity: 1; }
+
+  #finalPreview {
+    display: none;
+    margin-top: 24px;
+    background: var(--paper);
+    border: 1px solid var(--sand);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  #finalPreview h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 1.4rem;
+    color: var(--graphite);
+    margin: 0 0 4px;
+    border: none;
+    padding: 0;
+  }
+  #finalPreview .preview-meta { color: var(--ink); font-size: 0.88rem; margin-bottom: 18px; }
+  #finalPreview .category-heading:first-child { margin-top: 0; }
+  #finalPreview ul { margin: 0 0 12px; padding-left: 20px; background: transparent; }
+  #finalPreview li { font-size: 0.9rem; line-height: 1.5; margin-bottom: 6px; }
+  #finalPreview li .placeholder { color: var(--ink); font-style: italic; }
+  #finalPreview .signoff-line { font-size: 0.9rem; margin-bottom: 4px; }
+  #finalPreview .signoff-line .yes { color: #2f7a3e; font-weight: 700; }
+  #finalPreview .signoff-line .no { color: var(--ink); }
 </style>
 </head>
 <body>
@@ -247,6 +273,8 @@
     <button id="copyBtn">Copy Full Report</button>
     <span class="toast" id="copyToast">Copied</span>
   </div>
+
+  <div id="finalPreview"></div>
 </div>
 
 <script>
@@ -293,13 +321,27 @@ function saveMeta() {
   localStorage.setItem(META_KEY, JSON.stringify(meta));
 }
 
+function groupProjectsByCategory(items) {
+  const categories = [];
+  const byCategory = new Map();
+  items.forEach(item => {
+    const key = item.category || null;
+    if (!byCategory.has(key)) {
+      byCategory.set(key, []);
+      categories.push(key);
+    }
+    byCategory.get(key).push(item);
+  });
+  return { categories, byCategory };
+}
+
 function renderProjects() {
   const container = document.getElementById('projectsContainer');
   const banner = document.getElementById('banner');
   const data = loadItems();
 
   if (!data || !data.items || data.items.length === 0) {
-    banner.textContent = 'No data found yet. Go to index.html, paste your Claude output, click "Update Status Report," then come back here.';
+    banner.textContent = 'No data found yet. Go to index.html, paste your Claude output, click "Add These Updates," then come back here.';
     banner.classList.add('empty');
     container.innerHTML = '';
     return;
@@ -313,16 +355,7 @@ function renderProjects() {
   // Group by category when items carry one (from index.html's fixed item
   // list); items without a category (e.g. unmatched headings) render in
   // their own trailing group instead of being dropped.
-  const categories = [];
-  const byCategory = new Map();
-  data.items.forEach(item => {
-    const key = item.category || null;
-    if (!byCategory.has(key)) {
-      byCategory.set(key, []);
-      categories.push(key);
-    }
-    byCategory.get(key).push(item);
-  });
+  const { categories, byCategory } = groupProjectsByCategory(data.items);
 
   categories.forEach(cat => {
     if (cat) {
@@ -405,6 +438,105 @@ document.getElementById('reporterName').addEventListener('input', saveMeta);
 document.getElementById('weekOf').addEventListener('input', saveMeta);
 document.getElementById('recognitionInput').addEventListener('input', saveMeta);
 
+// Builds the same final report, but as rendered HTML (used for the on-page
+// preview), rather than the plain-text version copied to the clipboard.
+function renderFinalPreview() {
+  const preview = document.getElementById('finalPreview');
+  preview.innerHTML = '';
+
+  const name = document.getElementById('reporterName').value.trim();
+  const weekOf = document.getElementById('weekOf').value;
+
+  const h2 = document.createElement('h2');
+  h2.textContent = 'Commercial Readiness Weekly Status Report';
+  preview.appendChild(h2);
+
+  const meta = document.createElement('div');
+  meta.className = 'preview-meta';
+  meta.textContent = [name ? `Reported by ${name}` : null, weekOf ? `Week of ${weekOf}` : null].filter(Boolean).join(' — ') || 'Name and week not yet entered';
+  preview.appendChild(meta);
+
+  const data = loadItems();
+  if (data && data.items && data.items.length) {
+    const { categories, byCategory } = groupProjectsByCategory(data.items);
+    // Use the live textarea values (in case they were just edited), not the
+    // stale copy in storage, by reading straight from the DOM.
+    const liveByName = new Map(
+      Array.from(document.querySelectorAll('#projectsContainer .project textarea'))
+        .map(t => [t.dataset.itemName, t.value])
+    );
+
+    categories.forEach(cat => {
+      const heading = document.createElement('div');
+      heading.className = 'category-heading';
+      heading.textContent = cat || 'Other';
+      preview.appendChild(heading);
+      const ul = document.createElement('ul');
+      byCategory.get(cat).forEach(item => {
+        const li = document.createElement('li');
+        const strong = document.createElement('strong');
+        strong.textContent = item.name + ': ';
+        li.appendChild(strong);
+        const val = (liveByName.get(item.name) || '').trim();
+        if (val) {
+          li.appendChild(document.createTextNode(val));
+        } else {
+          const span = document.createElement('span');
+          span.className = 'placeholder';
+          span.textContent = 'No updates yet';
+          li.appendChild(span);
+        }
+        ul.appendChild(li);
+      });
+      preview.appendChild(ul);
+    });
+  }
+
+  const oooHeading = document.createElement('div');
+  oooHeading.className = 'category-heading';
+  oooHeading.textContent = 'Upcoming Out of Office';
+  preview.appendChild(oooHeading);
+  const oooUl = document.createElement('ul');
+  TEAM.forEach(person => {
+    const el = document.querySelector(`#oooGrid input[data-ooo="${CSS.escape(person)}"]`);
+    const li = document.createElement('li');
+    const strong = document.createElement('strong');
+    strong.textContent = person + ': ';
+    li.appendChild(strong);
+    li.appendChild(document.createTextNode((el ? el.value.trim() : '') || 'None'));
+    oooUl.appendChild(li);
+  });
+  preview.appendChild(oooUl);
+
+  const recogHeading = document.createElement('div');
+  recogHeading.className = 'category-heading';
+  recogHeading.textContent = 'Recognition';
+  preview.appendChild(recogHeading);
+  const recogP = document.createElement('p');
+  recogP.style.fontSize = '0.9rem';
+  recogP.textContent = document.getElementById('recognitionInput').value.trim() || 'Not yet entered.';
+  preview.appendChild(recogP);
+
+  const signHeading = document.createElement('div');
+  signHeading.className = 'category-heading';
+  signHeading.textContent = 'Sign Off';
+  preview.appendChild(signHeading);
+  TEAM.forEach(person => {
+    const el = document.querySelector(`#signoffGrid input[data-signoff="${CSS.escape(person)}"]`);
+    const signed = !!(el && el.checked);
+    const line = document.createElement('div');
+    line.className = 'signoff-line';
+    const strong = document.createElement('strong');
+    strong.textContent = person + ' — ';
+    line.appendChild(strong);
+    const status = document.createElement('span');
+    status.className = signed ? 'yes' : 'no';
+    status.textContent = signed ? 'Signed' : 'Not yet signed';
+    line.appendChild(status);
+    preview.appendChild(line);
+  });
+}
+
 document.getElementById('copyBtn').addEventListener('click', () => {
   const name = document.getElementById('reporterName').value.trim();
   const weekOf = document.getElementById('weekOf').value;
@@ -436,11 +568,17 @@ document.getElementById('copyBtn').addEventListener('click', () => {
   const signoffBlock = ['Sign Off', ...signoffLines].join('\n');
 
   const full = [header, ...projectParts, oooBlock, recognitionBlock, signoffBlock].filter(Boolean).join('\n\n');
+
   navigator.clipboard.writeText(full).then(() => {
     const toast = document.getElementById('copyToast');
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 1500);
   });
+
+  // Show the same report as rendered HTML right on the page, so you can see
+  // exactly what was just copied before pasting it anywhere.
+  renderFinalPreview();
+  document.getElementById('finalPreview').style.display = 'block';
 });
 
 renderProjects();

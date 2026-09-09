@@ -1,6 +1,6 @@
 # Weekly Status Update Assistant
 
-A team-wide index page that turns a Claude project into a weekly status update generator, plus a second page that's the final version of the report. Styled to Elsevier's brand standards (Tiempos Text / National 2, brand colors, logo).
+A team-wide index page that turns a Claude project into a weekly status update generator, plus a second page that's the final version of the report. Built so more than one person can layer in their own updates. Styled to Elsevier's brand standards (Tiempos Text / National 2, brand colors, logo).
 
 ## Objective
 
@@ -12,10 +12,23 @@ Claude's output is concise, easy to read, and written in third person using the 
 
 ## What's in this repo
 
-- `index.html` — the page everyone on the team uses. Always shows one field per tracked item, grouped by initiative; paste Claude's output and click "Update Status Report" to fill them in. "Save Changes" gives an explicit confirmation (fields also autosave as you type), and "View Report" shows a read-only, formatted preview right there before you move on.
-- `report-form.html` — the final version of the report on the same device. Project updates auto-fill from `index.html`; out-of-office, recognition, and sign-off are entered directly here.
+- `index.html` — the page everyone on the team uses. Always shows one field per tracked item, grouped by initiative. Pasting Claude's output **layers** new content in — it only fills in items the paste actually covers and never blanks out an item someone else already filled in. "Save Changes" gives an explicit confirmation (fields also autosave as you type), and "View Report" shows a read-only, formatted preview right there before you move on.
+- `report-form.html` — the final version of the report on the same device. Project updates auto-fill from `index.html`; out-of-office, recognition, and sign-off are entered directly here. Clicking "Copy Full Report" both copies the plain-text version to your clipboard *and* renders the same report as formatted HTML right on the page, so you can see exactly what you copied.
 - `prompt.md` — the prompt text that goes into each person's Claude project.
 - `elsevier-logo-graphite.svg`, `fonts/` — brand assets used by both HTML pages.
+
+## Multiple people, one report
+
+This is a static pair of HTML files with no server — `localStorage` is what remembers your data, and it's local to one browser on one device. That means several people editing `index.html` **on the same device** (e.g. passing a laptop around, or a shared kiosk) already works out of the box: paste your update, click "Add These Updates," and it layers onto whatever's already there without erasing anyone else's items.
+
+For people on **separate devices**, use export/import to hand off contributions:
+
+1. Each person fills in their own items on their own copy of `index.html` (paste their own Claude output, or type directly).
+2. They click **Export My Updates** — this copies a small JSON blob of everything they've filled in.
+3. They send that blob to whoever's consolidating (Teams, email, whatever's easiest).
+4. The person consolidating pastes it into their own step 2 paste box and clicks **Add These Updates** — same layering logic, so it merges in without disturbing what's already there.
+
+The `out-of-office` and `sign-off` sections on `report-form.html` are already laid out per-person (one row each for Kelly, Barry, Tessa, Laura, Andrew, Jan), so if the whole team fills those out on one shared device — during a stand-up, say — that already works without any export/import needed.
 
 ## Tracked items
 
@@ -34,7 +47,7 @@ Current list (4 initiatives, 17 items, all status "Active"):
 
 **Strategic/Corporate Initiatives** — eLearning Localization
 
-If Claude's pasted output includes a heading that doesn't match one of these exactly, `index.html` doesn't drop it — it shows up in an "Unmatched from pasted output" section so you can catch typos or fold it into the right field manually. If Claude finds nothing to report for an item, the prompt now tells it to leave that item's paragraph blank rather than writing a "no updates" placeholder sentence — `index.html` shows its own "No updates yet" placeholder for any blank field, so it's visually obvious which items are still open.
+If a pasted heading doesn't match one of these exactly, `index.html` doesn't drop it — it shows up in an "Unmatched from pasted output" section so you can catch typos or fold it into the right field manually. If Claude finds nothing to report for an item (or an item just isn't that person's to report on), the prompt tells it to leave that item's paragraph blank rather than writing a "no updates" placeholder sentence — `index.html` shows its own "No updates yet" placeholder for any blank field, so it's visually obvious which items are still open, and pasting someone else's update later won't overwrite a real answer with a blank one.
 
 ## One-time setup (each team member)
 
@@ -46,9 +59,9 @@ If Claude's pasted output includes a heading that doesn't match one of these exa
 
 1. In your **Status Update** project, ask: *"Run my status update for the week."*
 2. Copy Claude's full response.
-3. On `index.html`, paste it into the text box and click **Update Status Report**.
+3. On `index.html`, paste it into the text box and click **Add These Updates**. If you're consolidating for the team, also paste in anyone's exported updates the same way.
 4. Each tracked item's field fills in — make any tweaks directly in the form. Click **Save Changes** for a confirmation, or **View Report** to see a formatted read-only preview before moving on.
-5. Click **Open Report Form** to jump to `report-form.html` — the final version. Project updates are already there; add your name, the week-of date, upcoming out-of-office, recognition, and sign-off, then click **Copy Full Report**.
+5. Click **Open Report Form** to jump to `report-form.html` — the final version. Project updates are already there; add your name, the week-of date, upcoming out-of-office, recognition, and sign-off, then click **Copy Full Report** — it copies the text and shows you the same report formatted on the page.
 
 ## How the parsing works
 
@@ -59,7 +72,7 @@ Claude is instructed to output each item as:
 Update paragraph (or nothing, if there's no update)
 ```
 
-`index.html` splits the pasted text on `## ` headings and matches each one to a tracked item by name (ignoring case/punctuation differences). Anything that doesn't match a known item is kept and shown separately rather than dropped. A heading with no body text underneath it just means that item has nothing to report this week.
+`index.html` accepts either that markdown format or a previously-"exported" JSON blob, and either way, matches each item to a tracked item by name (ignoring case/punctuation differences). New content is **layered** onto whatever's already filled in — an item only gets overwritten if the new paste actually has non-blank content for it, so multiple people (or multiple pastes over time) accumulate instead of clobbering each other. Anything that doesn't match a known item is kept and shown separately rather than dropped.
 
 ## How the autofill between the two pages works
 
@@ -67,7 +80,7 @@ Update paragraph (or nothing, if there's no update)
 
 `report-form.html`'s own additions — name, week-of, out-of-office, recognition, sign-off — are saved separately under `statusReportMeta`, so they persist across refreshes without being tied to whatever's currently in `index.html`.
 
-This only works **within the same browser, on the same device** — `localStorage` is local to your machine, so it doesn't sync between teammates or across computers. If you need to hand a filled-in report to someone else, use **Copy Full Report** and send the text (or paste it into wherever your team's real report lives).
+This only works **within the same browser, on the same device** — `localStorage` is local to your machine, so it doesn't sync between teammates or across computers on its own. See "Multiple people, one report" above for how to hand off contributions across devices.
 
 ## Maintaining this over time
 
